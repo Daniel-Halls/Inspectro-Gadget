@@ -47,9 +47,13 @@ def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, mul
 
     # Check mask images are entered as a list
     mask_fnames = io.is_valid(mask_fnames, list)
+    if len(mask_fnames) == 0:
+        raise ValueError('mask_fnames cannot be empty.')
+
     # Count number of regions
     if sum(isinstance(i, list) for i in mask_fnames) == 0:
         multi_region = False
+        no_regions = 1
         no_subjects = 1
     else:
         multi_region = True
@@ -66,20 +70,26 @@ def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, mul
     # Create mask labels if not given
     if not mask_labels:
         mask_labels = []
-        for mask_no in range(1, no_regions+1):
-            mask_labels.append(f'Region {mask_no}')
+        if multi_sub:
+            for sub_no in range(1, no_subjects + 1):
+                mask_labels.append(f'Subject {sub_no}')
+        else:
+            for mask_no in range(1, no_regions + 1):
+                mask_labels.append(f'Region {mask_no}')
+    else:
+        mask_labels = io.is_valid(mask_labels, list)
+        expected_len = no_subjects if multi_sub else no_regions
+        if len(mask_labels) != expected_len:
+            raise ValueError(f'Expected {expected_len} mask labels, but got {len(mask_labels)}')
 
     # Create output directory
     if out_root:
         if not os.path.isdir(out_root):
-            raise IsADirectoryError('The directory to create the output folder in does not exist.')
+            raise NotADirectoryError(f'The directory to create the output folder in does not exist: {out_root}')
         out_dir = os.path.join(out_root, f'gadget-out_{time.strftime("%Y%m%d-%H%M%S")}')
     else:
         out_dir = os.path.join(os.getcwd(), f'gadget-out_{time.strftime("%Y%m%d-%H%M%S")}')
-    if not os.path.isdir(out_dir):
-        os.mkdir(out_dir)
-    else:
-        raise IsADirectoryError('Output directory already exists.')
+    os.makedirs(out_dir, exist_ok=True)
 
     # Set path where package data is stored
     data_dir = os.path.join(os.path.dirname(inspect.getfile(io)), 'data')
@@ -87,6 +97,7 @@ def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, mul
     # Collect all required data
     data = io.GadgetData(mask_fnames, mask_labels, data_dir, multi_region=multi_region, multi_subject=multi_sub,
                          no_subjects=no_subjects)
+    data.out_dir = out_dir
 
     # Replace background image if the user provides one
     if bground_fname:

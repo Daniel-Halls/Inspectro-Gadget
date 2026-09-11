@@ -1,5 +1,5 @@
 """
-Setup script for scalp-distance tool.
+Setup script for InSpectro-Gadget.
 """
 
 import os
@@ -23,7 +23,7 @@ setup(
     description='Gives information about neurotransmitter receptor related mRNA expression within MRS voxels.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    python_requires='>=3.5',
+    python_requires='>=3.8',
     author='Liz McManus',
     author_email='liz.mcmanus93@googlemail.com ',
     url='https://github.com/lizmcmanus/Inspectro-Gadget',
@@ -37,15 +37,22 @@ setup(
         'Operating System :: POSIX',
         'Operating System :: Unix',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
     platforms='any',
     keywords=['neuroscience', 'spectroscopy', 'MRI', 'mRNA', 'neurotransmission'],
     install_requires=install_requires,
     include_package_data=True,
-    package_data={'': ['data/*.tsv', 'data/mRNA_images/*.nii.gz']},
+    package_data={
+        'inspectro_gadget': [
+            'data/*.tsv',
+            'data/*.nii.gz',
+            'data/mRNA_images/*.nii',
+            'data/mRNA_images/*.nii.gz',
+        ],
+    },
 )

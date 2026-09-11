@@ -31,11 +31,11 @@ def is_valid(var, var_type, list_type=None):
         Variable to be checked (same as input).
     Raises
     ------
-    AttributeError
-        If var is not of var_type
+    TypeError
+        If var is not of var_type or elements not of list_type
     """
     if not isinstance(var, var_type):
-        raise AttributeError(f'The given variable is not a {var_type}')
+        raise TypeError(f'The given variable is of type {type(var)}, expected {var_type}')
 
     if var_type is list and list_type is not None:
         for element in var:
@@ -54,13 +54,13 @@ def test_nifti_ext(fname):
         The filename
 
     """
+    if not isinstance(fname, str):
+        raise TypeError(f'Expected filename to be a string, got {type(fname)}')
     # Check it's a valid filename
-    if fname[-4:] == '.nii':
-        return
-    elif fname[-7:] == '.nii.gz':
+    if fname.endswith('.nii') or fname.endswith('.nii.gz'):
         return
     else:
-        raise AttributeError(f'The input file {fname} does not appear to be for a nifti image')
+        raise ValueError(f'The input file {fname} does not appear to be for a nifti image (.nii or .nii.gz)')
 
 
 def load_nifti(fname):
@@ -85,9 +85,9 @@ def load_nifti(fname):
 
     # Ensure image is correct size
     if not img.shape == (91, 109, 91):
-        raise AttributeError(f'Input file {fname} does not have the correct dimensions')
+        raise ValueError(f'Input file {fname} does not have the correct dimensions: expected (91, 109, 91), got {img.shape}')
     if not tuple(img.header['pixdim'][1:4]) == (2, 2, 2):
-        raise AttributeError(f'Input file {fname} does not have the correct dimensions')
+        raise ValueError(f'Input file {fname} does not have 2mm isotropic voxels: pixdim is {tuple(img.header["pixdim"][1:4])}')
 
     return img.get_fdata()
 
@@ -167,10 +167,14 @@ def extract_mrna(subunit_path, region_mask):
     mrna_removed = np.array(mrna[(mrna != 0)])
 
     # interquartile range
+    if len(mrna_removed) == 0:
+        return np.zeros(np.sum(region_mask == 1))
     median = np.median(mrna_removed)
     Q1 = np.percentile(mrna_removed, 25)
     Q3 = np.percentile(mrna_removed, 75)
     IQRx = (Q3 - Q1) / 1.35
+    if IQRx == 0:
+        IQRx = 1.0
 
     # robust sigmoid
     image_norm = 1 / (1 + np.exp(-(mrna - median) / IQRx))
@@ -199,12 +203,17 @@ def get_receptor_data(receptors, mask, data_dir):
     Numpy array with a column for each gene. Each row is a voxel.
 
     """
-    out = np.zeros((len(mask[mask == 1]), len(receptors)))
+    mask_voxels = (mask == 1)
+    n_voxels = int(np.sum(mask_voxels))
+    if n_voxels == 0:
+        raise ValueError('The provided mask contains no voxels with value 1.')
+
+    out = np.zeros((n_voxels, len(receptors)))
     for rr, receptor in enumerate(receptors):
         out[:, rr] = extract_mrna(os.path.join(data_dir, 'mRNA_images', f'{receptor}_mirr_mRNA.nii'), mask)
     out_df = pd.DataFrame(data=out, columns=receptors)
     # Set voxels where there is no expression data to "NaN"
-    out_df[out_df < 0.1] = np.nan
+    out_df = out_df.mask(out_df < 0.1, np.nan)
     return out_df
 
 
@@ -253,7 +262,6 @@ class GadgetData:
         self.multi_region = deepcopy(multi_region)
 
         # Load built-in data
-        #data_dir = os.path.dirname(inspect.getfile(inspectro_gadget))
         self.receptor_list = pd.read_csv(os.path.join(data_dir, 'GroupedReceptors.tsv'), delimiter='\t', header=0)
         tmp_img = ni.load(os.path.join(data_dir, 'MNI152_T1_2mm.nii.gz'))
         self.img_affine = tmp_img.affine

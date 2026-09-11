@@ -46,16 +46,19 @@ def plot_masks(mask_imgs, labels, bground, pdf, ex_in=None):
     fig = plt.figure(tight_layout=True)
     gs = gridspec.GridSpec(no_ax, 3, width_ratios=[1, 1, 0.835])
     if no_ax == 1:
-        cmass = np.round(center_of_mass(mask_imgs[labels[0]]), 0).astype(int)
+        mask_data = mask_imgs[labels[0]]
+        if np.sum(mask_data != 0) == 0:
+            raise ValueError(f"Mask for '{labels[0]}' contains no non-zero voxels to plot.")
+        cmass = np.round(center_of_mass(mask_data), 0).astype(int)
         # Sagittal
-        mask_roi = np.ma.masked_where(mask_imgs[labels[0]][cmass[0], :, :] == 0, mask_imgs[labels[0]][cmass[0], :, :])
+        mask_roi = np.ma.masked_where(mask_data[cmass[0], :, :] == 0, mask_data[cmass[0], :, :])
         ax = fig.add_subplot(gs[0, 0])
         ax.imshow(bground[cmass[0], :, :].T, cmap='Greys_r', origin='lower', interpolation='none')
         ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[0]]))
         ax.set(yticklabels=[], xticklabels=[])  # remove the tick labels
         ax.tick_params(left=False, bottom=False)
         # Coronal
-        mask_roi = np.ma.masked_where(mask_imgs[labels[0]][:, cmass[1], :] == 0, mask_imgs[labels[0]][:, cmass[1], :])
+        mask_roi = np.ma.masked_where(mask_data[:, cmass[1], :] == 0, mask_data[:, cmass[1], :])
         ax = fig.add_subplot(gs[0, 1])
         ax.imshow(bground[:, cmass[1], :].T, cmap='Greys_r', origin='lower', interpolation='none')
         ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[0]]))
@@ -66,25 +69,29 @@ def plot_masks(mask_imgs, labels, bground, pdf, ex_in=None):
         else:
             ax.set_title(labels[0])
         # Axial
-        mask_roi = np.ma.masked_where(mask_imgs[labels[0]][:, :, cmass[2]] == 0, mask_imgs[labels[0]][:, :, cmass[2]])
+        mask_roi = np.ma.masked_where(mask_data[:, :, cmass[2]] == 0, mask_data[:, :, cmass[2]])
         ax = fig.add_subplot(gs[0, 2])
         ax.imshow(bground[:, :, cmass[2]].T, cmap='Greys_r', origin='lower', interpolation='none')
         ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[0]]))
         ax.set(yticklabels=[], xticklabels=[])  # remove the tick labels
         ax.tick_params(left=False, bottom=False)
         pdf.savefig(fig)
+        plt.close(fig)
     else:
         for aa in range(no_ax):
-            cmass = np.round(center_of_mass(mask_imgs[labels[aa]]), 0).astype(int)
+            mask_data = mask_imgs[labels[aa]]
+            if np.sum(mask_data != 0) == 0:
+                raise ValueError(f"Mask for '{labels[aa]}' contains no non-zero voxels to plot.")
+            cmass = np.round(center_of_mass(mask_data), 0).astype(int)
             # Sagittal
-            mask_roi = np.ma.masked_where(mask_imgs[labels[aa]][cmass[0], :, :] == 0, mask_imgs[labels[aa]][cmass[0], :, :])
+            mask_roi = np.ma.masked_where(mask_data[cmass[0], :, :] == 0, mask_data[cmass[0], :, :])
             ax = fig.add_subplot(gs[aa, 0])
             ax.imshow(bground[cmass[0], :, :].T, cmap='Greys_r', origin='lower', interpolation='none')
             ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[aa]]))
             ax.set(yticklabels=[], xticklabels=[])  # remove the tick labels
             ax.tick_params(left=False, bottom=False)
             # Coronal
-            mask_roi = np.ma.masked_where(mask_imgs[labels[aa]][:, cmass[1], :] == 0, mask_imgs[labels[aa]][:, cmass[1], :])
+            mask_roi = np.ma.masked_where(mask_data[:, cmass[1], :] == 0, mask_data[:, cmass[1], :])
             ax = fig.add_subplot(gs[aa, 1])
             ax.imshow(bground[:, cmass[1], :].T, cmap='Greys_r', origin='lower', interpolation='none')
             ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[aa]]))
@@ -95,13 +102,14 @@ def plot_masks(mask_imgs, labels, bground, pdf, ex_in=None):
             else:
                 ax.set_title(labels[aa])
             # Axial
-            mask_roi = np.ma.masked_where(mask_imgs[labels[aa]][:, :, cmass[2]] == 0, mask_imgs[labels[aa]][:, :, cmass[2]])
+            mask_roi = np.ma.masked_where(mask_data[:, :, cmass[2]] == 0, mask_data[:, :, cmass[2]])
             ax = fig.add_subplot(gs[aa, 2])
             ax.imshow(bground[:, :, cmass[2]].T, cmap='Greys_r', origin='lower', interpolation='none')
             ax.imshow(mask_roi.T, origin='lower', interpolation='none', alpha=0.8, cmap=colors.ListedColormap([colours[aa]]))
             ax.set(yticklabels=[], xticklabels=[])  # remove the tick labels
             ax.tick_params(left=False, bottom=False)
         pdf.savefig(fig)
+        plt.close(fig)
     return pdf
 
 
@@ -125,6 +133,8 @@ def plot_overlap(overlap, labels, bground, pdf):
     Figure object
 
     """
+    if np.sum(overlap != 0) == 0:
+        raise ValueError("Overlap image contains no non-zero voxels to plot.")
     fig = plt.figure(tight_layout=True)
     gs = gridspec.GridSpec(1, 3)
     cmass = np.round(center_of_mass(overlap), 0).astype(int)
@@ -151,6 +161,7 @@ def plot_overlap(overlap, labels, bground, pdf):
     ax.set(yticklabels=[], xticklabels=[])  # remove the tick labels
     ax.tick_params(left=False, bottom=False)
     pdf.savefig(fig)
+    plt.close(fig)
     return pdf
 
 
@@ -214,7 +225,7 @@ def single_region_violins(subunit_data, receptor_list, pdf):
                                         subunit_data[receptor_list.subunit[receptor_list.grouping == receptor].values],
                                         receptor)
     pdf.savefig(fig)
-    plt.close()
+    plt.close(fig)
     # Second PDF page
     fig, axs = plt.subplots(nrows=2, ncols=3, sharex=False, sharey=False, figsize=(10, 7), linewidth=0.01)
     plt.tick_params(bottom=False, top=False, left=False, right=False)
@@ -228,8 +239,8 @@ def single_region_violins(subunit_data, receptor_list, pdf):
         axs[1, rr] = make_single_violin(axs[1, rr],
                                         subunit_data[receptor_list.subunit[receptor_list.grouping == receptor].values],
                                         receptor)
-    plt.close()
     pdf.savefig(fig)
+    plt.close(fig)
     # Third PDF page
     fig, axs = plt.subplots(nrows=2, ncols=3, sharex=False, sharey=False, figsize=(10, 7), linewidth=0.01)
     plt.tick_params(bottom=False, top=False, left=False, right=False)
@@ -243,9 +254,8 @@ def single_region_violins(subunit_data, receptor_list, pdf):
         axs[1, rr] = make_single_violin(axs[1, rr],
                                         subunit_data[receptor_list.subunit[receptor_list.grouping == receptor].values],
                                         receptor)
-    #fig.delaxes(axs[1][2])
-    plt.close()
     pdf.savefig(fig)
+    plt.close(fig)
     # Fourth PDF page
     fig, axs = plt.subplots(nrows=2, ncols=2, sharex=False, sharey=False, figsize=(10, 7), linewidth=0.01)
     plt.tick_params(bottom=False, top=False, left=False, right=False)
@@ -258,8 +268,8 @@ def single_region_violins(subunit_data, receptor_list, pdf):
     fig.delaxes(axs[0][1])
     fig.delaxes(axs[1][0])
     fig.delaxes(axs[1][1])
-    plt.close()
     pdf.savefig(fig)
+    plt.close(fig)
     return pdf
 
 
@@ -315,21 +325,23 @@ def make_two_violins(ax, receptors, group, pcts, ds, ds_ci, kss):
 
 def two_region_prep(subunit_data, receptor_list, receptor, subunit_pct_diff, subunit_d_vals, subunit_d_cis, subunit_ks_vals):
     # Arrange subunit data into dataframe for plotting
-    subunit_exp = pd.DataFrame(columns=['values', 'subunit', 'region'])
+    target_subunits = receptor_list.subunit[receptor_list.grouping == receptor].values
+    dfs = []
     for region in list(subunit_data.keys()):
-        for subunit in receptor_list.subunit[receptor_list.grouping == receptor].values:
-            df = pd.DataFrame()
-            df['values'] = subunit_data[region][subunit]
-            df['subunit'] = subunit
-            df['region'] = region
-            subunit_exp = pd.concat((subunit_exp, df), axis=0)
-    #subunit_exp = subunit_exp.fillna(0)
-    subunit_exp = subunit_exp.dropna()
+        for subunit in target_subunits:
+            vals = subunit_data[region][subunit].dropna().values
+            if len(vals) > 0:
+                df = pd.DataFrame({'values': vals, 'subunit': subunit, 'region': region})
+                dfs.append(df)
+    if dfs:
+        subunit_exp = pd.concat(dfs, ignore_index=True)
+    else:
+        subunit_exp = pd.DataFrame(columns=['values', 'subunit', 'region'])
     # Arrange stats
-    pcts = [subunit_pct_diff[subunit] for subunit in receptor_list.subunit[receptor_list.grouping == receptor].values]
-    ds = [subunit_d_vals[subunit] for subunit in receptor_list.subunit[receptor_list.grouping == receptor].values]
-    ds_ci = [subunit_d_cis[subunit] for subunit in receptor_list.subunit[receptor_list.grouping == receptor].values]
-    kss = [subunit_ks_vals[subunit] for subunit in receptor_list.subunit[receptor_list.grouping == receptor].values]
+    pcts = [subunit_pct_diff.get(subunit, 0.0) for subunit in target_subunits]
+    ds = [subunit_d_vals.get(subunit, 0.0) for subunit in target_subunits]
+    ds_ci = [subunit_d_cis.get(subunit, [0.0, 0.0]) for subunit in target_subunits]
+    kss = [subunit_ks_vals.get(subunit, 0.0) for subunit in target_subunits]
     return subunit_exp, receptor, pcts, ds, ds_ci, kss
 
 
@@ -473,9 +485,8 @@ def region_radar(receptor_median, labels, receptor_list, pdf):
             ax.legend(loc='upper left', bbox_to_anchor=(-0.6, 1), fontsize=10)
     # Add to pdf
         fig.tight_layout(pad=3.0)
-        plt.show()
         pdf.savefig(fig)
-        plt.close()
+        plt.close(fig)
     return pdf
 
 
@@ -650,7 +661,7 @@ def multisub_violin(subunit_data, receptor_list, pdf, receptor_median):
             fig.delaxes(axs[1][2])
         fig.tight_layout(pad=3.0)
         pdf.savefig(fig)
-        plt.close()
+        plt.close(fig)
     return pdf
 
 
@@ -692,7 +703,7 @@ def multisub_exin(exin_data, labels, pdf):
     ax.tick_params(axis='y', which='both', labelsize=8, width=0.5)
     ax.set_title('Estimated excitation/inhibition ratio', fontsize=10)
     pdf.savefig(fig)
-    plt.close()
+    plt.close(fig)
     return pdf
 
 
@@ -729,7 +740,7 @@ def multisub_radar(receptor_median, receptor_list, pdf):
 
     # Space points around circle
     angles = [n / float(n_receptors) * 2 * np.pi for n in range(n_receptors)]
-    angles += angles[:1]  # Why is this done??
+    angles += angles[:1]  # Connect back to start point
 
     # Make plot
     fig = plt.figure()
@@ -743,15 +754,14 @@ def multisub_radar(receptor_median, receptor_list, pdf):
 
     for ss, subject in enumerate(subjects):
         values = df.loc[subject, :].values.flatten().tolist()
-        values += values[:1]  # Why is this done??
+        values += values[:1]  # Connect back to start point
         ax.plot(angles, values, color=colour_map(ss), linewidth=1, linestyle='solid', label=subject)
-        #ax.fill(angles, values, alpha=0.1)
 
     # Add legend
     ax.legend(loc='upper left', bbox_to_anchor=(-0.6, 1), fontsize=10)
     fig.tight_layout(pad=3.0)
     pdf.savefig(fig)
-    plt.close()
+    plt.close(fig)
 
     # Neuromodulators
     df = receptor_median.loc[:, receptor_list.mod_radar.values]
@@ -761,7 +771,7 @@ def multisub_radar(receptor_median, receptor_list, pdf):
 
     # Space points around circle
     angles = [n / float(n_receptors) * 2 * np.pi for n in range(n_receptors)]
-    angles += angles[:1]  # Why is this done??
+    angles += angles[:1]  # Connect back to start point
 
     fig = plt.figure()
     ax = fig.add_subplot(111, polar=True)
@@ -774,13 +784,12 @@ def multisub_radar(receptor_median, receptor_list, pdf):
 
     for ss, subject in enumerate(subjects):
         values = df.loc[subject, :].values.flatten().tolist()
-        values += values[:1]  # Why is this done??
+        values += values[:1]  # Connect back to start point
         ax.plot(angles, values, color=colour_map(ss), linewidth=1, linestyle='solid', label=subject)
-        #ax.fill(angles, values, alpha=0.1)
 
     # Add legend
     ax.legend(loc='upper left', bbox_to_anchor=(-0.6, 1), fontsize=10)
     fig.tight_layout(pad=3.0)
     pdf.savefig(fig)
-    plt.close()
+    plt.close(fig)
     return pdf
