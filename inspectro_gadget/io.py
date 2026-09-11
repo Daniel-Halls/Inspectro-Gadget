@@ -115,26 +115,126 @@ def save_nifti(img, affine, out_dir):
 
 def save_exin(exin_data, labels, out_dir):
     """
-    Save each subject's estimated excitation/inhibition ratio as a CSV file.
+    Save estimated excitation/inhibition ratio for each region or subject as a CSV file.
 
     Parameters
     ----------
     exin_data: dict
-        Each subject's ex/in data
+        Dictionary containing ex/in ratios keyed by label
     labels: list
-        List of subject labels
+        List of region or subject labels
     out_dir: str
         Directory to save file to
-
-    Returns
-    -------
-
     """
-    exin = np.zeros(len(exin_data))
-    for ss, subject in enumerate(labels):
-        exin[ss] = exin_data[subject]
-    df = pd.DataFrame(data=exin, index=labels, columns=['Ex_In'])
-    df.to_csv(os.path.join(out_dir, 'subject-excitation-inhibition-ratios.csv'))
+    exin = [exin_data.get(label, np.nan) for label in labels]
+    df = pd.DataFrame({'label': labels, 'excitation_inhibition_ratio': exin})
+    df.to_csv(os.path.join(out_dir, 'excitation-inhibition-ratios.csv'), index=False)
+    # Also write subject-excitation-inhibition-ratios.csv for backward compatibility
+    legacy_df = pd.DataFrame(data=exin, index=labels, columns=['Ex_In'])
+    legacy_df.to_csv(os.path.join(out_dir, 'subject-excitation-inhibition-ratios.csv'))
+
+
+def save_receptor_medians(receptor_median, receptor_list, labels, out_dir, multi_subject=False):
+    """
+    Save receptor profile median expression values as CSV file(s).
+
+    Parameters
+    ----------
+    receptor_median: dict or DataFrame
+        Dictionary of median DataFrames (single/multi-region) or single DataFrame (multi-subject)
+    receptor_list: DataFrame
+        DataFrame containing subunits and functional groupings
+    labels: list
+        List of region or subject labels
+    out_dir: str
+        Directory to save file to
+    multi_subject: bool
+        Whether this is a multi-subject analysis
+    """
+    subunits = receptor_list['subunit'].values
+    groupings = receptor_list['grouping'].values
+
+    if multi_subject:
+        # Wide table: subjects as rows, subunits as columns
+        subject_csv = os.path.join(out_dir, 'subject-receptor-medians.csv')
+        receptor_median.to_csv(subject_csv, index_label='subject')
+
+        # Group summary table
+        group_med = receptor_median.median(axis=0)
+        group_df = pd.DataFrame({
+            'subunit': subunits,
+            'grouping': groupings,
+            'group_median': [group_med.get(s, np.nan) for s in subunits],
+        })
+        group_df.to_csv(os.path.join(out_dir, 'group-receptor-medians.csv'), index=False)
+    else:
+        data_dict = {
+            'subunit': subunits,
+            'grouping': groupings,
+        }
+        for label in labels:
+            if label in receptor_median:
+                reg_df = receptor_median[label]
+                data_dict[label] = [reg_df[s].values[0] if s in reg_df else np.nan for s in subunits]
+        df = pd.DataFrame(data_dict)
+        df.to_csv(os.path.join(out_dir, 'receptor-medians.csv'), index=False)
+
+
+def save_comparison_stats(subunit_d_vals, subunit_d_cis, subunit_pct_diff, subunit_ks_vals, receptor_list, out_dir):
+    """
+    Save statistical comparison values between two regions as a CSV file.
+
+    Parameters
+    ----------
+    subunit_d_vals: dict
+        Cohen's d values per subunit
+    subunit_d_cis: dict
+        Confidence intervals for Cohen's d per subunit
+    subunit_pct_diff: dict
+        Percentage difference per subunit
+    subunit_ks_vals: dict
+        Kolmogorov-Smirnov test statistics per subunit
+    receptor_list: DataFrame
+        List of subunits and groupings
+    out_dir: str
+        Directory to save file to
+    """
+    subunits = receptor_list['subunit'].values
+    groupings = receptor_list['grouping'].values
+
+    rows = []
+    for s, g in zip(subunits, groupings):
+        ci = subunit_d_cis.get(s, [np.nan, np.nan])
+        rows.append({
+            'subunit': s,
+            'grouping': g,
+            'pct_difference': subunit_pct_diff.get(s, np.nan),
+            'cohens_d': subunit_d_vals.get(s, np.nan),
+            'cohens_d_ci_lower': ci[0] if len(ci) > 0 else np.nan,
+            'cohens_d_ci_upper': ci[1] if len(ci) > 1 else np.nan,
+            'ks_statistic': subunit_ks_vals.get(s, np.nan),
+        })
+
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(out_dir, 'two-region-comparison-statistics.csv'), index=False)
+
+
+def save_voxel_data(voxel_df, label, out_dir):
+    """
+    Save the normalized mRNA expression values for all voxels in a mask to CSV.
+
+    Parameters
+    ----------
+    voxel_df: DataFrame
+        Voxel by gene expression DataFrame
+    label: str
+        Region or subject label
+    out_dir: str
+        Directory to save file to
+    """
+    safe_label = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in label)
+    csv_path = os.path.join(out_dir, f'{safe_label}_voxel_expression.csv')
+    voxel_df.to_csv(csv_path, index_label='voxel_id')
 
 
 def extract_mrna(subunit_path, region_mask):

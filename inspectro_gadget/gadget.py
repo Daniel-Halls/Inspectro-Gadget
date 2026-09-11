@@ -13,8 +13,10 @@ GABA and Glutamate regions must ine in a .tsv file "receptors.tsv"
 import os
 import inspect
 import time
-from inspectro_gadget import plotting, stats, io
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib.backends.backend_pdf import PdfPages
+from inspectro_gadget import plotting, stats, io
 
 
 def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, multi_violin=True):
@@ -145,9 +147,18 @@ def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, mul
             else:
                 pdf = plotting.single_region_violins(data.receptor_data[data.labels[0]], data.receptor_list, pdf)
 
-    # Save any other relevant files
+    # Save CSV outputs and any other relevant files
+    print('Saving CSV and output files')
+    io.save_exin(data.ex_in_ratio, data.labels, out_dir)
+    io.save_receptor_medians(data.receptor_median, data.receptor_list, data.labels, out_dir, multi_subject=data.multi_subject)
+    for label in data.labels:
+        io.save_voxel_data(data.receptor_data[label], label, out_dir)
+
+    if data.multi_region:
+        io.save_comparison_stats(data.subunit_d_vals, data.subunit_d_cis, data.subunit_pct_diff, data.subunit_ks_vals,
+                                 data.receptor_list, out_dir)
+
     if data.multi_subject:
         io.save_nifti(data.overlap_image['Subject overlap'], data.img_affine, out_dir)
-        io.save_exin(data.ex_in_ratio, data.labels, out_dir)
     print('Finished')
     return data

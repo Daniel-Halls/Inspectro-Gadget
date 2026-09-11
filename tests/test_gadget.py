@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 import numpy as np
+import pandas as pd
 
 from inspectro_gadget.gadget import gadget
 from tests.helpers import create_dummy_mask, save_dummy_nifti
@@ -51,6 +52,21 @@ class TestGadgetPipeline(unittest.TestCase):
         self.assertGreater(os.path.getsize(pdf_file), 0)
         self.assertIn("Region 1", out.ex_in_ratio)
         self.assertGreater(out.ex_in_ratio["Region 1"], 0)
+        # Verify CSV outputs for single-region
+        exin_csv = os.path.join(out.out_dir, "excitation-inhibition-ratios.csv")
+        self.assertTrue(os.path.isfile(exin_csv))
+        df_exin = pd.read_csv(exin_csv)
+        self.assertEqual(list(df_exin["label"]), ["Region 1"])
+        med_csv = os.path.join(out.out_dir, "receptor-medians.csv")
+        self.assertTrue(os.path.isfile(med_csv))
+        df_med = pd.read_csv(med_csv)
+        self.assertIn("Region 1", df_med.columns)
+        self.assertIn("subunit", df_med.columns)
+        vox_csv = os.path.join(out.out_dir, "Region_1_voxel_expression.csv")
+        self.assertTrue(os.path.isfile(vox_csv))
+        df_vox = pd.read_csv(vox_csv)
+        self.assertIn("voxel_id", df_vox.columns)
+        self.assertGreater(len(df_vox), 0)
 
     def test_two_region_pipeline(self):
         out = gadget(
@@ -68,6 +84,19 @@ class TestGadgetPipeline(unittest.TestCase):
         self.assertGreater(len(out.subunit_d_cis), 0)
         self.assertGreater(len(out.subunit_pct_diff), 0)
         self.assertGreater(len(out.subunit_ks_vals), 0)
+        # Verify CSV outputs for two-region
+        med_csv = os.path.join(out.out_dir, "receptor-medians.csv")
+        self.assertTrue(os.path.isfile(med_csv))
+        df_med = pd.read_csv(med_csv)
+        self.assertIn("ROI_A", df_med.columns)
+        self.assertIn("ROI_B", df_med.columns)
+        comp_csv = os.path.join(out.out_dir, "two-region-comparison-statistics.csv")
+        self.assertTrue(os.path.isfile(comp_csv))
+        df_comp = pd.read_csv(comp_csv)
+        for col in ["subunit", "grouping", "pct_difference", "cohens_d", "cohens_d_ci_lower", "cohens_d_ci_upper", "ks_statistic"]:
+            self.assertIn(col, df_comp.columns)
+        self.assertTrue(os.path.isfile(os.path.join(out.out_dir, "ROI_A_voxel_expression.csv")))
+        self.assertTrue(os.path.isfile(os.path.join(out.out_dir, "ROI_B_voxel_expression.csv")))
 
     def test_multi_subject_pipeline(self):
         out = gadget(
@@ -81,11 +110,23 @@ class TestGadgetPipeline(unittest.TestCase):
         self.assertEqual(out.no_subjects, 2)
         pdf_file = os.path.join(out.out_dir, "gadget-output.pdf")
         self.assertTrue(os.path.isfile(pdf_file))
-        # Verify exported overlap image and CSV table
+        # Verify exported overlap image and CSV tables
         overlap_nii = os.path.join(out.out_dir, "subject-overlap.nii.gz")
         csv_file = os.path.join(out.out_dir, "subject-excitation-inhibition-ratios.csv")
         self.assertTrue(os.path.isfile(overlap_nii))
         self.assertTrue(os.path.isfile(csv_file))
+        exin_csv = os.path.join(out.out_dir, "excitation-inhibition-ratios.csv")
+        self.assertTrue(os.path.isfile(exin_csv))
+        sub_med_csv = os.path.join(out.out_dir, "subject-receptor-medians.csv")
+        self.assertTrue(os.path.isfile(sub_med_csv))
+        df_sub_med = pd.read_csv(sub_med_csv)
+        self.assertEqual(len(df_sub_med), 2)
+        grp_med_csv = os.path.join(out.out_dir, "group-receptor-medians.csv")
+        self.assertTrue(os.path.isfile(grp_med_csv))
+        df_grp_med = pd.read_csv(grp_med_csv)
+        self.assertIn("group_median", df_grp_med.columns)
+        self.assertTrue(os.path.isfile(os.path.join(out.out_dir, "Sub_01_voxel_expression.csv")))
+        self.assertTrue(os.path.isfile(os.path.join(out.out_dir, "Sub_02_voxel_expression.csv")))
 
 
 if __name__ == "__main__":

@@ -78,11 +78,74 @@ class TestNiftiIO(unittest.TestCase):
         exin_data = {"sub-01": 1.25, "sub-02": 0.95}
         labels = ["sub-01", "sub-02"]
         io.save_exin(exin_data, labels, self.temp_dir.name)
-        out_file = os.path.join(self.temp_dir.name, "subject-excitation-inhibition-ratios.csv")
+        out_file = os.path.join(self.temp_dir.name, "excitation-inhibition-ratios.csv")
         self.assertTrue(os.path.isfile(out_file))
-        df = pd.read_csv(out_file, index_col=0)
-        self.assertAlmostEqual(df.loc["sub-01", "Ex_In"], 1.25)
-        self.assertAlmostEqual(df.loc["sub-02", "Ex_In"], 0.95)
+        df = pd.read_csv(out_file)
+        self.assertEqual(list(df["label"]), labels)
+        self.assertAlmostEqual(df.loc[0, "excitation_inhibition_ratio"], 1.25)
+        self.assertAlmostEqual(df.loc[1, "excitation_inhibition_ratio"], 0.95)
+        # Legacy file
+        legacy_file = os.path.join(self.temp_dir.name, "subject-excitation-inhibition-ratios.csv")
+        self.assertTrue(os.path.isfile(legacy_file))
+
+    def test_save_receptor_medians_single_region(self):
+        rec_list = pd.DataFrame({
+            "subunit": ["GABRA1", "GRIN1"],
+            "grouping": ["GABAA_Alpha", "NMDA"]
+        })
+        rec_median = {
+            "Region 1": pd.DataFrame({"GABRA1": [0.45], "GRIN1": [0.65]})
+        }
+        io.save_receptor_medians(rec_median, rec_list, ["Region 1"], self.temp_dir.name)
+        csv_file = os.path.join(self.temp_dir.name, "receptor-medians.csv")
+        self.assertTrue(os.path.isfile(csv_file))
+        df = pd.read_csv(csv_file)
+        self.assertIn("Region 1", df.columns)
+        self.assertEqual(list(df["subunit"]), ["GABRA1", "GRIN1"])
+        self.assertAlmostEqual(df.loc[0, "Region 1"], 0.45)
+
+    def test_save_receptor_medians_multi_subject(self):
+        rec_list = pd.DataFrame({
+            "subunit": ["GABRA1", "GRIN1"],
+            "grouping": ["GABAA_Alpha", "NMDA"]
+        })
+        rec_median = pd.DataFrame({
+            "GABRA1": [0.4, 0.5],
+            "GRIN1": [0.6, 0.7],
+        }, index=["s1", "s2"])
+        io.save_receptor_medians(rec_median, rec_list, ["s1", "s2"], self.temp_dir.name, multi_subject=True)
+        sub_file = os.path.join(self.temp_dir.name, "subject-receptor-medians.csv")
+        grp_file = os.path.join(self.temp_dir.name, "group-receptor-medians.csv")
+        self.assertTrue(os.path.isfile(sub_file))
+        self.assertTrue(os.path.isfile(grp_file))
+        df_grp = pd.read_csv(grp_file)
+        self.assertAlmostEqual(df_grp.loc[0, "group_median"], 0.45)
+
+    def test_save_comparison_stats(self):
+        rec_list = pd.DataFrame({
+            "subunit": ["GABRA1"],
+            "grouping": ["GABAA_Alpha"]
+        })
+        d_vals = {"GABRA1": 0.55}
+        d_cis = {"GABRA1": [0.2, 0.9]}
+        pct_diff = {"GABRA1": 12.5}
+        ks_vals = {"GABRA1": 0.3}
+        io.save_comparison_stats(d_vals, d_cis, pct_diff, ks_vals, rec_list, self.temp_dir.name)
+        csv_file = os.path.join(self.temp_dir.name, "two-region-comparison-statistics.csv")
+        self.assertTrue(os.path.isfile(csv_file))
+        df = pd.read_csv(csv_file)
+        self.assertAlmostEqual(df.loc[0, "cohens_d"], 0.55)
+        self.assertAlmostEqual(df.loc[0, "cohens_d_ci_lower"], 0.2)
+        self.assertAlmostEqual(df.loc[0, "pct_difference"], 12.5)
+
+    def test_save_voxel_data(self):
+        v_df = pd.DataFrame({"GABRA1": [0.1, 0.2], "GRIN1": [0.3, 0.4]})
+        io.save_voxel_data(v_df, "Region 1", self.temp_dir.name)
+        csv_file = os.path.join(self.temp_dir.name, "Region_1_voxel_expression.csv")
+        self.assertTrue(os.path.isfile(csv_file))
+        df = pd.read_csv(csv_file)
+        self.assertEqual(len(df), 2)
+        self.assertIn("GABRA1", df.columns)
 
 
 class TestmRNAExtraction(unittest.TestCase):
