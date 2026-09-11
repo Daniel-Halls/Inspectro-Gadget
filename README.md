@@ -41,20 +41,46 @@ pip install https://github.com/lizmcmanus/Inspectro-Gadget/archive/refs/heads/ma
 
 
 ## Usage
-For each analysis, enter the path to your region or regions of interest. Label(s) for the regions and a specific output directory can also be specified but are not required.
+InSpectro-Gadget can be used either as a command-line pipeline tool or imported as a Python package.
 
-Regions of interest should be binary images in 2 mm isotropic MNI152NLIN6Asym space. 
+Mask regions of interest should be binary images in 2 mm isotropic MNI152 space (`.nii` or `.nii.gz`).
 
+### Command-Line Interface (Pipeline)
 
-### Single region
-To obtain receptor estimates for a single region enter that region's mask. A PDF report will be produced in the current working directory or in the output directory specified.
+InSpectro-Gadget provides a Git-style CLI with three subcommands: `region`, `compare`, and `multiple`.
 
+Each subcommand accepts:
+- `-m` / `--mask-inputs`: Paths to mask NIfTI images
+- `-l` / `--labels`: Labels for each mask (optional)
+- `-o` / `--outdir`: Output directory to save the PDF report and CSV tables (optional)
+- `-b` / `--background`: Custom background NIfTI image in MNI152 2mm space (optional)
+
+```bash
+# 1. Single region
+inspectro-gadget region -m /path/to/mask.nii.gz -l "ACC" -o /path/to/output
+
+# 2. Two region comparison
+inspectro-gadget compare -m /path/to/mask1.nii.gz /path/to/mask2.nii.gz -l "ACC" "DLPFC" -o /path/to/output
+
+# 3. Multiple participant comparison
+inspectro-gadget multiple -m sub-01.nii.gz sub-02.nii.gz sub-03.nii.gz -l "Sub1" "Sub2" "Sub3" -o /path/to/output
 ```
-from inspectro_gadget.gadget import gadget
 
-gadget_out =  gadget(['/home/data/region1_mask.nii.gz'],
-              mask_labels=['Region 1'],
-              out_root='/home/data/results')
+You can also run via `gadget <subcommand>` or `python -m inspectro_gadget <subcommand>`.
+
+---
+
+### Python API
+
+#### Single region
+To obtain receptor estimates for a single region enter that region's mask:
+
+```python
+from inspectro_gadget import gadget
+
+gadget_out = gadget(['/home/data/region1_mask.nii.gz'],
+                    mask_labels=['Region 1'],
+                    out_root='/home/data/results')
 ```
 
 The report will include a variety of information:
