@@ -302,8 +302,10 @@ def make_two_violins(ax, receptors, group, pcts, ds, ds_ci, kss):
                  [f'{ks:0.2f}' for ks in kss]]
     columns = np.unique(receptors.subunit)
     # Plot data
+    n_hues = len(np.unique(receptors['region'])) if 'region' in receptors else 1
+    palette = colours[:max(n_hues, 1)]
     sb.violinplot(data=receptors, x='subunit', y='values', hue='region', inner="box",
-                  ax=ax, linewidth=0.1, palette=colours[:2], saturation=0.6)
+                  ax=ax, linewidth=0.1, palette=palette, saturation=0.6)
     ax.set_ylim(0, 1.05)
     ax.set_title(group, fontsize=6)
     ax.tick_params(axis='y', which='both', labelsize=4, width=0.5)

@@ -4,6 +4,7 @@
 Resources for handling statistical operations and similar.
 """
 
+import warnings
 import numpy as np
 import pandas as pd
 from scipy.stats import norm, kstest
@@ -114,7 +115,9 @@ def region_median(subunit_data, receptor_list):
     -------
     Dataframe
     """
-    medians = np.nanmedian(subunit_data, axis=0).reshape((1, subunit_data.shape[1]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        medians = np.nanmedian(subunit_data, axis=0).reshape((1, subunit_data.shape[1]))
     medians[np.isnan(medians)] = 0
     df = pd.DataFrame(columns=receptor_list.subunit.values, data=medians)
     return df
@@ -137,7 +140,9 @@ def subject_median(subunit_data, receptor_list):
     -------
     Dataframe
     """
-    rows = {subject: np.nanmedian(subunit_data[subject], axis=0) for subject in subunit_data.keys()}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        rows = {subject: np.nanmedian(subunit_data[subject], axis=0) for subject in subunit_data.keys()}
     return pd.DataFrame.from_dict(rows, orient='index', columns=receptor_list.subunit.values)
 
 
@@ -160,6 +165,8 @@ def calc_cohend(g1, g2):
     g1 = np.asarray(g1, dtype=float)
     g2 = np.asarray(g2, dtype=float)
     n1, n2 = len(g1), len(g2)
+    if n1 == 0 or n2 == 0:
+        return 0.0
     if n1 < 2 or n2 < 2:
         sd = (np.std(g1) + np.std(g2)) / 2.0
     else:
