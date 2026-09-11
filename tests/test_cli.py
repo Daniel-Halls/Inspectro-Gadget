@@ -206,13 +206,14 @@ class TestCLISubcommands(unittest.TestCase):
             "-o", out_dir,
         ])
         self.assertEqual(ret, 0)
-        subdirs = [os.path.join(out_dir, d) for d in os.listdir(out_dir) if d.startswith("gadget-out_")]
-        self.assertEqual(len(subdirs), 1)
-        res_dir = subdirs[0]
-        self.assertTrue(os.path.isfile(os.path.join(res_dir, "gadget-output.pdf")))
-        self.assertTrue(os.path.isfile(os.path.join(res_dir, "receptor-medians.csv")))
-        self.assertTrue(os.path.isfile(os.path.join(res_dir, "excitation-inhibition-ratios.csv")))
-        self.assertTrue(os.path.isfile(os.path.join(res_dir, "TestCLIROI_voxel_expression.csv")))
+        # Verify no subdirectories are created inside out_dir
+        subdirs = [d for d in os.listdir(out_dir) if os.path.isdir(os.path.join(out_dir, d))]
+        self.assertEqual(len(subdirs), 0)
+        # Verify files are saved directly in out_dir
+        self.assertTrue(os.path.isfile(os.path.join(out_dir, "gadget-output.pdf")))
+        self.assertTrue(os.path.isfile(os.path.join(out_dir, "receptor-medians.csv")))
+        self.assertTrue(os.path.isfile(os.path.join(out_dir, "excitation-inhibition-ratios.csv")))
+        self.assertTrue(os.path.isfile(os.path.join(out_dir, "TestCLIROI_voxel_expression.csv")))
 
 
 if __name__ == "__main__":

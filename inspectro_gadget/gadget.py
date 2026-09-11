@@ -12,7 +12,6 @@ GABA and Glutamate regions must ine in a .tsv file "receptors.tsv"
 
 import os
 import inspect
-import time
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib.backends.backend_pdf import PdfPages
@@ -84,14 +83,13 @@ def gadget(mask_fnames, mask_labels=None, out_root=None, bground_fname=None, mul
         if len(mask_labels) != expected_len:
             raise ValueError(f'Expected {expected_len} mask labels, but got {len(mask_labels)}')
 
-    # Create output directory
+    # Set output directory
     if out_root:
         if not os.path.isdir(out_root):
-            raise NotADirectoryError(f'The directory to create the output folder in does not exist: {out_root}')
-        out_dir = os.path.join(out_root, f'gadget-out_{time.strftime("%Y%m%d-%H%M%S")}')
+            raise NotADirectoryError(f'The directory to output files does not exist: {out_root}')
+        out_dir = out_root
     else:
-        out_dir = os.path.join(os.getcwd(), f'gadget-out_{time.strftime("%Y%m%d-%H%M%S")}')
-    os.makedirs(out_dir, exist_ok=True)
+        out_dir = os.getcwd()
 
     # Set path where package data is stored
     data_dir = os.path.join(os.path.dirname(inspect.getfile(io)), 'data')
