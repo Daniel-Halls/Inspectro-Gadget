@@ -137,10 +137,8 @@ def subject_median(subunit_data, receptor_list):
     -------
     Dataframe
     """
-    df = pd.DataFrame(columns=receptor_list.subunit)
-    for subject in subunit_data.keys():
-        df.loc[subject, :] = np.nanmedian(subunit_data[subject], axis=0)
-    return df
+    rows = {subject: np.nanmedian(subunit_data[subject], axis=0) for subject in subunit_data.keys()}
+    return pd.DataFrame.from_dict(rows, orient='index', columns=receptor_list.subunit.values)
 
 
 def calc_cohend(g1, g2):

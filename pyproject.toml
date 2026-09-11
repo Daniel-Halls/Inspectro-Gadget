@@ -1,6 +1,63 @@
 [build-system]
-requires = [
-  "setuptools>=42",
-  "wheel"
-]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "inspectro_gadget"
+dynamic = ["version"]
+description = "Gives information about neurotransmitter receptor related mRNA expression within MRS voxels."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Liz McManus", email = "liz.mcmanus93@googlemail.com" }
+]
+keywords = ["neuroscience", "spectroscopy", "MRI", "mRNA", "neurotransmission"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "nibabel>=5.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Daniel-Halls/Inspectro-Gadget"
+Repository = "https://github.com/Daniel-Halls/Inspectro-Gadget.git"
+"Bug Tracker" = "https://github.com/Daniel-Halls/Inspectro-Gadget/issues"
+
+[tool.setuptools]
+packages = ["inspectro_gadget"]
+
+[tool.setuptools.dynamic]
+version = { attr = "inspectro_gadget.version.__version__" }
+
+[tool.setuptools.package-data]
+inspectro_gadget = [
+    "data/*.tsv",
+    "data/*.nii.gz",
+    "data/mRNA_images/*.nii",
+    "data/mRNA_images/*.nii.gz",
+]
